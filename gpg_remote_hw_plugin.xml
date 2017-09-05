@@ -1,0 +1,7 @@
+<library path="lib/libgpg_remote">
+  <class name="gpg_remote/GPGRemoteHW" type="GPGRemoteHW" base_class_type="hardware_interface::RobotHW">
+    <description>
+      Remote GoPiGo hardware interface
+    </description>
+  </class>
+</library>

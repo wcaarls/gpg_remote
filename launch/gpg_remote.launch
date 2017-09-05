@@ -1,0 +1,14 @@
+<launch>
+
+  <node name="gpg_remote_hw" pkg="gpg_remote" type="node" respawn="false"
+    output="screen" ns="/gpg" />
+
+  <node name="gpg_remote_camera" pkg="gpg_remote" type="image_publisher" respawn="false"
+    output="screen" ns="/gpg" />
+
+  <rosparam file="$(find gpg_remote)/cfg/gpg_remote.yaml" ns="/gpg" command="load"/>
+
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+    output="screen" ns="/gpg" args="mobile_base_controller servo_controller"/>
+	  
+</launch>
