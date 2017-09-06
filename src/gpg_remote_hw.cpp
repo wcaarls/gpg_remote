@@ -93,7 +93,7 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
   GPGRemoteStatus msg;
 
   ioctl(conn_, FIONREAD, &available);
-  if (available >= sizeof(GPGRemoteStatus))
+  while (available >= sizeof(GPGRemoteStatus))
   {
     if (::read(conn_, &msg, sizeof(GPGRemoteStatus)) < sizeof(GPGRemoteStatus))
     {
@@ -120,6 +120,8 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     pos_[2] = cmd_[2];
     vel_[2] = 0;
     eff_[2] = 0;
+
+    ioctl(conn_, FIONREAD, &available);
   }
 }
 
