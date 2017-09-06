@@ -22,7 +22,10 @@ server_socket.listen(0)
 
 while True:
     # Accept a single connection and make a file-like object out of it
+    print "Awaiting connection"
     connection = server_socket.accept()[0].makefile('rb')
+    print "Connected"
+
     try:
         stream = io.BytesIO()
         for foo in camera.capture_continuous(stream, 'jpeg', use_video_port=True):
@@ -37,6 +40,7 @@ while True:
             stream.seek(0)
             stream.truncate()
     except:
+        print "Error"
         pass
     finally:
         try:

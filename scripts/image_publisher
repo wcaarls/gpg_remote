@@ -2,6 +2,7 @@
 # Software License Agreement (BSD License)
 #
 # Copyright (c) 2008, Willow Garage, Inc.
+# Copyright (c) 2017, Wouter Caarls
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -56,9 +57,12 @@ def image_publisher():
     rospy.init_node('image_publisher', anonymous=True)
     bridge = CvBridge()
     
+    host_name = rospy.get_param("host")
+    port_number = rospy.get_param("image_port")
+    
     # Connect to Raspberry Pi
     client_socket = socket.socket()
-    client_socket.connect(('192.168.0.202', 8000))
+    client_socket.connect((host_name, port_number))
     connection = client_socket.makefile('wb')
     
     while not rospy.is_shutdown():

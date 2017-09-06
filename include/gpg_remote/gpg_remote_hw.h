@@ -14,13 +14,13 @@
 struct GPGRemoteStatus
 {
   uint32_t size;
-  uint32_t pos[2];
+  int32_t pos[2];
 }; 
 
 struct GPGRemoteCommand
 {
   uint32_t size;
-  uint32_t vel[2];
+  int32_t vel[2];
   uint32_t servo;
 };
 
@@ -39,9 +39,10 @@ class GPGRemoteHW : public hardware_interface::RobotHW
     double eff_[3];
     
     int conn_;
+    double first_;
     
   public:
-    GPGRemoteHW() : conn_(-1) { }
+    GPGRemoteHW() : conn_(-1), first_(true) { }
 
     virtual bool init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh);
     virtual void read(const ros::Time & time, const ros::Duration &period);

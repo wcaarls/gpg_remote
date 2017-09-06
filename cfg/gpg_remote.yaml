@@ -1,4 +1,6 @@
-endpoint: 192.168.0.202:8002
+host: 192.168.0.202
+image_port: 8000
+data_port: 8002
 mobile_base_controller:
   type: "diff_drive_controller/DiffDriveController"
   left_wheel: 'left_wheel'

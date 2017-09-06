@@ -25,10 +25,9 @@ int GPGRemoteHW::connect()
   bzero((char *) &addr, sizeof(addr));
   addr.sin_family = AF_INET;
   
-  std::string portname;
-  nh_.getParam("endpoint", portname);
-  std::string host_name   = portname.substr(0, portname.find(':'));
-  std::string port_number = portname.substr(portname.find(':')+1);
+  std::string host_name, port_number="8002";
+  nh_.getParam("host", host_name);
+  nh_.getParam("data_port", port_number);
 
   server = gethostbyname(host_name.c_str());
   if (!server)
@@ -83,6 +82,7 @@ bool GPGRemoteHW::init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh)
   registerInterface(&jnt_pos_interface_);
 
   conn_ = connect();
+  first_ = true;
   
   return (conn_ >= 0);
 }
@@ -110,6 +110,9 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     // Wheels
     for (int ii=0; ii<2; ++ii)
     {
+      if (first_)
+        pos_[ii] = msg.pos[ii]/MOTOR_TICKS_PER_RADIAN;
+    
       double prevpos = pos_[ii];
       pos_[ii] = msg.pos[ii]/MOTOR_TICKS_PER_RADIAN;
       vel_[ii] = (pos_[ii]-prevpos)/period.toSec();
@@ -120,6 +123,8 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     pos_[2] = cmd_[2];
     vel_[2] = 0;
     eff_[2] = 0;
+
+    first_ = false;
 
     ioctl(conn_, FIONREAD, &available);
   }
