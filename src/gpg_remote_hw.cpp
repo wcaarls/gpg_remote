@@ -123,6 +123,10 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     pos_[2] = cmd_[2];
     vel_[2] = 0;
     eff_[2] = 0;
+    
+    // Line sensor
+    for (int ii=0; ii<5; ++ii)
+      line_[ii] = msg.line[ii];
 
     first_ = false;
 
@@ -142,6 +146,16 @@ void GPGRemoteHW::write(const ros::Time &time, const ros::Duration &period)
 
   if (::write(conn_, &msg, sizeof(GPGRemoteCommand)) < sizeof(GPGRemoteCommand))
     ROS_ERROR_STREAM("Could not write GPG3 command message: " << strerror(errno));
+}
+
+std::vector<int> GPGRemoteHW::getLineSensor()
+{
+  std::vector<int> val(5);
+
+  for (int ii=0; ii<5; ++ii)
+    val[ii] = line_[ii];
+    
+  return val;
 }
 
 PLUGINLIB_EXPORT_CLASS(GPGRemoteHW, hardware_interface::RobotHW)

@@ -15,6 +15,7 @@ struct GPGRemoteStatus
 {
   uint32_t size;
   int32_t pos[2];
+  uint32_t line[5];
 }; 
 
 struct GPGRemoteCommand
@@ -37,6 +38,7 @@ class GPGRemoteHW : public hardware_interface::RobotHW
     double pos_[3];
     double vel_[3];
     double eff_[3];
+    int line_[5];
     
     int conn_;
     double first_;
@@ -47,6 +49,8 @@ class GPGRemoteHW : public hardware_interface::RobotHW
     virtual bool init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh);
     virtual void read(const ros::Time & time, const ros::Duration &period);
     virtual void write(const ros::Time & time, const ros::Duration &period);
+    
+    std::vector<int> getLineSensor();
 
   private:
     int connect();

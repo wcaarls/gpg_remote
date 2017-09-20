@@ -6,6 +6,7 @@ import select
 import struct
 import time
 import gopigo3
+import line_sensor
 
 def run():
     GPG = gopigo3.GoPiGo3()
@@ -42,6 +43,7 @@ def run():
                     
                 # Construct status
                 msg = struct.pack('<ll', GPG.get_motor_encoder(GPG.MOTOR_LEFT)*GPG.MOTOR_TICKS_PER_DEGREE, GPG.get_motor_encoder(GPG.MOTOR_RIGHT)*GPG.MOTOR_TICKS_PER_DEGREE)
+                msg = msg + struct.pack('<lllll', *line_sensor.get_sensorval())
                 msg = struct.pack('<L', len(msg)) + msg
                 
                 connection.send(msg)

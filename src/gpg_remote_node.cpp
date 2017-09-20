@@ -1,3 +1,5 @@
+#include "gpg_remote/State.h"
+
 #include <controller_manager/controller_manager.h>
 
 #include "gpg_remote/gpg_remote_hw.h"
@@ -6,6 +8,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "gpg_remote_node");
   ros::NodeHandle nh;
+  ros::Publisher pub = nh.advertise<gpg_remote::State>("chatter", 1000);;
   
   ROS_INFO("Initializing GPG3 remote node");
 
@@ -33,6 +36,11 @@ int main(int argc, char **argv)
     robot.read(ts, d);
     cm.update(ts, d);
     robot.write(ts, d);
+    
+    gpg_remote::State msg;
+    msg.line = robot.getLineSensor();
+    pub.publish(msg);
+    
     rate.sleep();
   }
   spinner.stop();
