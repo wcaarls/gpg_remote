@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "gpg_remote_node");
   ros::NodeHandle nh;
-  ros::Publisher pub = nh.advertise<gpg_remote::State>("chatter", 1000);;
+  ros::Publisher pub = nh.advertise<gpg_remote::State>("state", 10);
   
   ROS_INFO("Initializing GPG3 remote node");
 
