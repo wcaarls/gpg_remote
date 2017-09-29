@@ -13,6 +13,7 @@ def run():
     GPG = gopigo3.GoPiGo3()
     
     last_command = time.clock()
+    last_battery_good = time.clock()
 
     server_socket = socket.socket()
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -32,8 +33,12 @@ def run():
                 # Battery check
                 battery = GPG.get_voltage_battery()
                 if battery < 10.5:
-                    print "Battery voltage critically low"
-                    os.system("sudo poweroff")
+                    print "Low battery: ", battery
+                    if time.clock() > last_battery_good + 1:
+                        print "Battery critically low, shutting down"
+                        os.system("sudo poweroff")
+                else:
+                    last_battery_good = time.clock()
                 
                 ready = select.select([connection], [], [], 0.010)[0] # 10ms timeout
                 
@@ -46,7 +51,7 @@ def run():
                     msg = struct.unpack('<lll', msg)
                     
                     # Apply commands
-                    if battery > 11.1:
+                    if battery > 11:
                         GPG.set_motor_dps(GPG.MOTOR_LEFT, msg[0])
                         GPG.set_motor_dps(GPG.MOTOR_RIGHT, msg[1])
                         GPG.set_servo(GPG.SERVO_1, msg[2])
