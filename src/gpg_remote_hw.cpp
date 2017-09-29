@@ -126,10 +126,11 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     
     // Line sensor
     for (int ii=0; ii<5; ++ii)
-      line_[ii] = msg.line[ii];
+      if (msg.line[ii] < 1024)
+        line_[ii] = msg.line[ii];
       
     // Battery voltage
-      battery_ = msg.battery;
+    battery_ = msg.battery;
 
     first_ = false;
 

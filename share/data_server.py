@@ -32,11 +32,11 @@ def run():
             while True:
                 # Battery check
                 battery = GPG.get_voltage_battery()
-                if battery < 10.5:
+                if battery < 10:
                     print "Low battery: ", battery
                     if time.clock() > last_battery_good + 1:
                         print "Battery critically low, shutting down"
-                        os.system("sudo poweroff")
+                        os.system("shutdown now -h")
                 else:
                     last_battery_good = time.clock()
                 
@@ -51,7 +51,7 @@ def run():
                     msg = struct.unpack('<lll', msg)
                     
                     # Apply commands
-                    if battery > 11:
+                    if battery > 10.5:
                         GPG.set_motor_dps(GPG.MOTOR_LEFT, msg[0])
                         GPG.set_motor_dps(GPG.MOTOR_RIGHT, msg[1])
                         GPG.set_servo(GPG.SERVO_1, msg[2])
