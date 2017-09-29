@@ -39,6 +39,7 @@ int main(int argc, char **argv)
     
     gpg_remote::State msg;
     msg.line = robot.getLineSensor();
+    msg.battery = robot.getBatteryVoltage();
     pub.publish(msg);
     
     rate.sleep();

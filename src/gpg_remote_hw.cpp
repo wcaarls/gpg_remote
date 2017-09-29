@@ -127,6 +127,9 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     // Line sensor
     for (int ii=0; ii<5; ++ii)
       line_[ii] = msg.line[ii];
+      
+    // Battery voltage
+      battery_ = msg.battery;
 
     first_ = false;
 
@@ -156,6 +159,11 @@ std::vector<int> GPGRemoteHW::getLineSensor()
     val[ii] = line_[ii];
     
   return val;
+}
+
+float GPGRemoteHW::getBatteryVoltage()
+{
+  return battery_;
 }
 
 PLUGINLIB_EXPORT_CLASS(GPGRemoteHW, hardware_interface::RobotHW)

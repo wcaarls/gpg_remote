@@ -18,6 +18,7 @@ def run():
     # Start a socket listening for connections on 0.0.0.0:8000 (0.0.0.0 means
     # all interfaces)
     server_socket = socket.socket()
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind(('0.0.0.0', 8000))
     server_socket.listen(0)
 
