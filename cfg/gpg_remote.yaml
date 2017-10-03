@@ -20,4 +20,7 @@ mobile_base_controller:
 servo_controller:
   type: "position_controllers/JointPositionController"
   joint: 'servo'
+joint_state_controller:
+  type: "joint_state_controller/JointStateController"
+  publish_rate: 50
   
