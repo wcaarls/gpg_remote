@@ -6,9 +6,17 @@
   <node name="gpg_remote_camera" pkg="gpg_remote" type="image_publisher" respawn="false"
     output="screen" ns="/gpg" />
 
+  <node name="gpg_remote_depth" pkg="gpg_remote" type="fake_depth_publisher" respawn="false"
+    output="screen" ns="/gpg" />
+
   <rosparam file="$(find gpg_remote)/cfg/gpg_remote.yaml" ns="/gpg" command="load"/>
 
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
     output="screen" ns="/gpg" args="--shutdown-timeout 1 mobile_base_controller servo_controller joint_state_controller"/>
+
+  <param name="/gpg/camera_info_url" value="$(find gpg_remote)/cfg/rpi_camera.yaml"/>
+
+  <node name="camera_info_publisher" pkg="gpg_remote" type="camera_info_publisher" respawn="false"
+    output="screen" ns="/gpg"/>
 	  
 </launch>

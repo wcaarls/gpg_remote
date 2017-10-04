@@ -79,7 +79,11 @@ def image_publisher():
         frame = np.fromstring(image_stream.getvalue(), dtype=np.uint8)
         image = cv2.imdecode(frame, cv2.IMREAD_COLOR)
         
-        pub.publish(bridge.cv2_to_imgmsg(image, "bgr8"))
+        msg = bridge.cv2_to_imgmsg(image, "bgr8")
+        msg.header.frame_id = "camera_link"
+        msg.header.stamp = rospy.Time.now()
+        
+        pub.publish(msg)
 
 if __name__ == '__main__':
     try:
