@@ -12,8 +12,8 @@ import line_sensor
 def run():
     GPG = gopigo3.GoPiGo3()
     
-    last_command = time.clock()
-    last_battery_good = time.clock()
+    last_command = time.time()
+    last_battery_good = time.time()
 
     server_socket = socket.socket()
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -34,20 +34,22 @@ def run():
                 battery = GPG.get_voltage_battery()
                 if battery < 10:
                     print "Low battery: ", battery
-                    if time.clock() > last_battery_good + 1:
+                    if time.time() > last_battery_good + 1:
                         print "Battery critically low, shutting down"
                         os.system("shutdown now -h")
                 else:
-                    last_battery_good = time.clock()
+                    last_battery_good = time.time()
                 
-                ready = select.select([connection], [], [], 0.010)[0] # 10ms timeout
+                ready = select.select([connection], [], [], 0.050)[0] # 50ms timeout
                 
                 if ready:
                     sz = struct.unpack('<L', connection.recv(struct.calcsize('<L')))[0]
                     if not sz:
                         break
                         
-                    msg = connection.recv(sz)
+                    msg = ''
+                    while len(msg) < sz:
+                        msg = connection.recv(sz-len(msg))
                     msg = struct.unpack('<lll', msg)
                     
                     # Apply commands
@@ -56,12 +58,12 @@ def run():
                         GPG.set_motor_dps(GPG.MOTOR_RIGHT, msg[1])
                         GPG.set_servo(GPG.SERVO_1, msg[2])
                         
-                        last_command = time.clock()
+                        last_command = time.time()
                     
                 # Auto-stop if no commands are sent
-                if time.clock() > last_command + 1:
+                if time.time() > last_command + 1:
                     print "Stopping (no data or low battery). Battery is at ", battery, "V"
-                    last_command = time.clock() + 3600
+                    last_command = time.time() + 3600
                     GPG.reset_all()
                     
                 # Construct status
@@ -71,8 +73,8 @@ def run():
                 msg = struct.pack('<L', len(msg)) + msg
                 
                 connection.send(msg)
-        except:
-            print "Data server error"
+        except Exception as e:
+            print "Data server error: ", e
             pass
         finally:
             try:

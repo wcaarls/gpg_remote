@@ -30,6 +30,7 @@ def run():
 
         try:
             stream = io.BytesIO()
+            start = time.time()
             for foo in camera.capture_continuous(stream, 'jpeg', use_video_port=True):
                 # Write the length of the capture to the stream and flush to
                 # ensure it actually gets sent
@@ -41,8 +42,11 @@ def run():
                 # Reset the stream for the next capture
                 stream.seek(0)
                 stream.truncate()
-        except:
-            print "Image server error"
+                # Rate limit to 5Hz
+                time.sleep(max(0, start - time.time() + 0.2)) 
+                start = time.time()
+        except Exception as e:
+            print "Image server error: ", e
             pass
         finally:
             try:
