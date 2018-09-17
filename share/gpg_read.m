@@ -6,10 +6,10 @@ function status = gpg_read(s)
 %
 %   STATUS is a struct with the following fields:
 %      position: position (in rad) of the wheels
-%      line    : line sensors as a 10-bit value
-%      battery : battery voltage
-%      distance: ultrasonic distance sensor values
-%      light   : light sensor values
+%      line    : line sensors as 10-bit values
+%      battery : battery voltage in V
+%      distance: ultrasonic distance sensor values in m
+%      light   : light sensors as 12-bit values
 %
 %   EXAMPLE:
 %       s = gpg_open('192.168.0.205');
@@ -31,7 +31,10 @@ function status = gpg_read(s)
     status.position = double(typecast(data(5:12), 'int32'))'*pi/180;
     status.line = double(typecast(data(13:32), 'int32'))';
     status.battery = double(typecast(data(33:36), 'single'))';
-    status.distance = double(typecast(data(37:52), 'int32'))';
+    v = double(typecast(data(37:52), 'int32'))'/1024*5;
+    
+    % http://jeremyblythe.blogspot.com/2012/09/raspberry-pi-distance-measuring-sensor.html
+    status.distance = (16.2537 * v.^4 - 129.893 * v.^3 + 382.268 * v.^2 - 512.611 * v + 306.439) / 100;
     status.light = double(typecast(data(53:60), 'int32'))';
 
 end
