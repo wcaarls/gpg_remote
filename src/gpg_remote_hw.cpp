@@ -90,47 +90,76 @@ bool GPGRemoteHW::init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh)
 void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
 {
   int available;
-  GPGRemoteStatus msg;
+  GPGRemoteStatusGrove msg;
 
   ioctl(conn_, FIONREAD, &available);
-  while (available >= sizeof(GPGRemoteStatus))
+  while (available >= 4)
   {
-    if (::read(conn_, &msg, sizeof(GPGRemoteStatus)) < sizeof(GPGRemoteStatus))
+    if (::read(conn_, &msg, 4) < 4)
     {
-      ROS_FATAL_STREAM("Could not read GPG3 status message: " << strerror(errno));
+      ROS_FATAL_STREAM("Could not read GPG3 status message header");
       exit(1);
     }
-
-    if (msg.size != sizeof(GPGRemoteStatus)-4)
+    
+    if (::read(conn_, msg.pos, msg.size) < msg.size)
     {
-      ROS_FATAL_STREAM("Illegal GPG3 status message size " << msg.size);
+      ROS_FATAL_STREAM("Could not read GPG3 status message");
       exit(1);
     }
-
-    // Wheels
-    for (int ii=0; ii<2; ++ii)
+  
+    if (msg.size >= sizeof(GPGRemoteStatus)-4)
     {
-      if (first_)
-        pos_[ii] = msg.pos[ii]/MOTOR_TICKS_PER_RADIAN;
-    
-      double prevpos = pos_[ii];
-      pos_[ii] = msg.pos[ii]/MOTOR_TICKS_PER_RADIAN;
-      vel_[ii] = (pos_[ii]-prevpos)/period.toSec();
-      eff_[ii] = 0;
-    }
-    
-    // Servo
-    pos_[2] = cmd_[2];
-    vel_[2] = 0;
-    eff_[2] = 0;
-    
-    // Line sensor
-    for (int ii=0; ii<5; ++ii)
-      if (msg.line[ii] < 1024)
-        line_[ii] = msg.line[ii];
+      // Wheels
+      for (int ii=0; ii<2; ++ii)
+      {
+        if (first_)
+          pos_[ii] = msg.pos[ii]/MOTOR_TICKS_PER_RADIAN;
       
-    // Battery voltage
-    battery_ = msg.battery;
+        double prevpos = pos_[ii];
+        pos_[ii] = msg.pos[ii]/MOTOR_TICKS_PER_RADIAN;
+        vel_[ii] = (pos_[ii]-prevpos)/period.toSec();
+        eff_[ii] = 0;
+      }
+      
+      // Servo
+      pos_[2] = cmd_[2];
+      vel_[2] = 0;
+      eff_[2] = 0;
+      
+      // Line sensor
+      for (int ii=0; ii<5; ++ii)
+        if (msg.line[ii] < 1024)
+          line_[ii] = msg.line[ii];
+        
+      // Battery voltage
+      battery_ = msg.battery;
+    }
+    else
+    {
+      ROS_FATAL_STREAM("Invalid GPG3 status message size: " << msg.size);
+      exit(1);
+    }
+      
+    if (msg.size >= sizeof(GPGRemoteStatusGrove)-4)
+    {
+      // Distance sensors
+      for (int ii=0; ii<4; ++ii)
+      {
+        double v = msg.distance[ii]/1024.*5;
+        distance_[ii] = (16.2537 * pow(v, 4) - 129.893 * pow(v, 3) + 382.268 * pow(v, 2) - 512.611 * v + 306.439) / 100;
+      }
+      
+      // Light sensors
+      for (int ii=0; ii<2; ++ii)
+        light_[ii] = msg.light[ii];
+    }
+    else
+    {
+      for (int ii=0; ii<4; ++ii)
+        distance_[ii] = 0;
+      for (int ii=0; ii<2; ++ii)
+        light_[ii] = 0;
+    }
 
     first_ = false;
 
@@ -165,6 +194,26 @@ std::vector<int> GPGRemoteHW::getLineSensor()
 float GPGRemoteHW::getBatteryVoltage()
 {
   return battery_;
+}
+
+std::vector<float> GPGRemoteHW::getDistanceSensor()
+{
+  std::vector<float> val(4);
+
+  for (int ii=0; ii<4; ++ii)
+    val[ii] = distance_[ii];
+    
+  return val;
+}
+
+std::vector<float> GPGRemoteHW::getLightSensor()
+{
+  std::vector<float> val(2);
+
+  for (int ii=0; ii<2; ++ii)
+    val[ii] = light_[ii];
+    
+  return val;
 }
 
 PLUGINLIB_EXPORT_CLASS(GPGRemoteHW, hardware_interface::RobotHW)

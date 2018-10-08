@@ -1,4 +1,5 @@
 #include "gpg_remote/State.h"
+#include "sensor_msgs/LaserScan.h"
 
 #include <controller_manager/controller_manager.h>
 
@@ -8,7 +9,8 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "gpg_remote_node");
   ros::NodeHandle nh;
-  ros::Publisher pub = nh.advertise<gpg_remote::State>("state", 10);
+  ros::Publisher state_pub = nh.advertise<gpg_remote::State>("state", 10);
+  ros::Publisher scan_pub = nh.advertise<sensor_msgs::LaserScan>("scan", 10);
   
   ROS_INFO("Initializing GPG3 remote node");
 
@@ -37,10 +39,25 @@ int main(int argc, char **argv)
     cm.update(ts, d);
     robot.write(ts, d);
     
-    gpg_remote::State msg;
-    msg.line = robot.getLineSensor();
-    msg.battery = robot.getBatteryVoltage();
-    pub.publish(msg);
+    gpg_remote::State state;
+    state.line = robot.getLineSensor();
+    state.battery = robot.getBatteryVoltage();
+    state.distance = robot.getDistanceSensor();
+    state.light = robot.getLightSensor();
+    state_pub.publish(state);
+    
+    sensor_msgs::LaserScan scan;
+    scan.header.frame_id = "base_link";
+    scan.header.stamp = ros::Time::now();
+    scan.angle_min = 0;
+    scan.angle_max = 1.5*M_PI;
+    scan.angle_increment = 0.5*M_PI;
+    scan.time_increment = 0.01;
+    scan.scan_time = 0.01;
+    scan.range_min = 0.2;
+    scan.range_max = 1.5;
+    scan.ranges = state.distance;
+    scan_pub.publish(scan);
     
     rate.sleep();
   }

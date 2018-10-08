@@ -7,6 +7,7 @@ import struct
 import time
 import os
 import gopigo3
+import grovepi
 import line_sensor
 
 def run():
@@ -24,6 +25,19 @@ def run():
         print "Data server awaiting connection"
         
         GPG.reset_all()
+        GPG.set_grove_type(GPG.GROVE_1, GPG.GROVE_TYPE.CUSTOM)
+        GPG.set_grove_mode(GPG.GROVE_1, GPG.GROVE_INPUT_ANALOG)
+        GPG.set_grove_type(GPG.GROVE_2, GPG.GROVE_TYPE.CUSTOM)
+        GPG.set_grove_mode(GPG.GROVE_2, GPG.GROVE_INPUT_ANALOG)
+        
+        try:
+            grovepi.analogRead(0)
+            has_grove = True
+        except:
+            has_grove = False
+
+        print "Grove board detected: ", has_grove
+
         connection = server_socket.accept()[0]
         
         print "Data server connected"
@@ -70,6 +84,9 @@ def run():
                 msg = struct.pack('<ll', GPG.get_motor_encoder(GPG.MOTOR_LEFT)*GPG.MOTOR_TICKS_PER_DEGREE, GPG.get_motor_encoder(GPG.MOTOR_RIGHT)*GPG.MOTOR_TICKS_PER_DEGREE)
                 msg = msg + struct.pack('<lllll', *line_sensor.get_sensorval())
                 msg = msg + struct.pack('<f', battery)
+                if has_grove:
+                    msg = msg + struct.pack('<llll', grovepi.analogRead(1), grovepi.analogRead(0), grovepi.analogRead(2), grovepi.analogRead(3))
+                    msg = msg + struct.pack('<ll', GPG.get_grove_analog(GPG.GROVE_1_1), GPG.get_grove_analog(GPG.GROVE_2_1))
                 msg = struct.pack('<L', len(msg)) + msg
                 
                 connection.send(msg)

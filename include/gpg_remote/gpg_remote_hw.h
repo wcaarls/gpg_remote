@@ -19,6 +19,16 @@ struct GPGRemoteStatus
   float battery;
 }; 
 
+struct GPGRemoteStatusGrove
+{
+  uint32_t size;
+  int32_t pos[2];
+  uint32_t line[5];
+  float battery;
+  uint32_t distance[4];
+  uint32_t light[2];
+}; 
+
 struct GPGRemoteCommand
 {
   uint32_t size;
@@ -41,9 +51,11 @@ class GPGRemoteHW : public hardware_interface::RobotHW
     double eff_[3];
     int line_[5];
     float battery_;
+    float distance_[4];
+    float light_[2];
     
     int conn_;
-    double first_;
+    bool first_;
     
   public:
     GPGRemoteHW() : conn_(-1), first_(true) { }
@@ -54,6 +66,8 @@ class GPGRemoteHW : public hardware_interface::RobotHW
     
     std::vector<int> getLineSensor();
     float getBatteryVoltage();
+    std::vector<float> getDistanceSensor();
+    std::vector<float> getLightSensor();
 
   private:
     int connect();
