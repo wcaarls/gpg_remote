@@ -101,11 +101,9 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
       exit(1);
     }
     
-    if (::read(conn_, msg.pos, msg.size) < msg.size)
-    {
-      ROS_FATAL_STREAM("Could not read GPG3 status message");
-      exit(1);
-    }
+    size_t n=0;
+    while (::read(conn_, &((unsigned char*)&msg)[n+4], msg.size-n) < msg.size-n)
+      usleep(10);
   
     if (msg.size >= sizeof(GPGRemoteStatus)-4)
     {
@@ -146,7 +144,7 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
       for (int ii=0; ii<4; ++ii)
       {
         double v = msg.distance[ii]/1024.*5;
-        distance_[ii] = (16.2537 * pow(v, 4) - 129.893 * pow(v, 3) + 382.268 * pow(v, 2) - 512.611 * v + 306.439) / 100;
+        distance_[ii] = 0.07 + (16.2537 * pow(v, 4) - 129.893 * pow(v, 3) + 382.268 * pow(v, 2) - 512.611 * v + 306.439) / 100;
       }
       
       // Light sensors

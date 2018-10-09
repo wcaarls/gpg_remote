@@ -54,7 +54,7 @@ def run():
                 else:
                     last_battery_good = time.time()
                 
-                ready = select.select([connection], [], [], 0.050)[0] # 50ms timeout
+                ready = select.select([connection], [], [], 0.100)[0] # 100ms timeout
                 
                 if ready:
                     sz = struct.unpack('<L', connection.recv(struct.calcsize('<L')))[0]

@@ -26,7 +26,7 @@ int main(int argc, char **argv)
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
-  ros::Rate rate(100);
+  ros::Rate rate(20);
   ros::Time ts = ros::Time::now();
   
   ROS_INFO("Spinning");
@@ -54,8 +54,8 @@ int main(int argc, char **argv)
     scan.angle_increment = 0.5*M_PI;
     scan.time_increment = 0.01;
     scan.scan_time = 0.01;
-    scan.range_min = 0.2;
-    scan.range_max = 1.5;
+    scan.range_min = 0.25;
+    scan.range_max = 2.;
     scan.ranges = state.distance;
     scan_pub.publish(scan);
     
