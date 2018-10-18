@@ -40,10 +40,10 @@ int GPGRemoteHW::connect()
   addr.sin_port = htons(atoi(port_number.c_str()));
 
   ROS_INFO_STREAM("Connecting to GPG3 at " << host_name << ":" << port_number);
-  if (::connect(fd,(struct sockaddr *) &addr,sizeof(addr)) < 0)
+  while (::connect(fd,(struct sockaddr *) &addr,sizeof(addr)) < 0 && ros::ok())
   {
     ROS_ERROR_STREAM("Could not connect to GPG3: " << strerror(errno));
-    return -1;
+    sleep(1);
   }
 
   return fd;
@@ -82,28 +82,46 @@ bool GPGRemoteHW::init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh)
   registerInterface(&jnt_pos_interface_);
 
   conn_ = connect();
-  first_ = true;
   
   return (conn_ >= 0);
 }
 
 void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
 {
-  int available;
+  int available=0;
   GPGRemoteStatusGrove msg;
+  
+  int err;
+  socklen_t sz = sizeof(err);
+  getsockopt(conn_, SOL_SOCKET, SO_ERROR, &err, &sz);
+  
+  if (err)
+  {
+    ROS_ERROR_STREAM("Socket error");
+    close(conn_);
+    conn_ = connect();
+  }  
+
+  if (conn_ < 0)
+    exit(1);
 
   ioctl(conn_, FIONREAD, &available);
+  
   while (available >= 4)
   {
     if (::read(conn_, &msg, 4) < 4)
     {
-      ROS_FATAL_STREAM("Could not read GPG3 status message header");
-      exit(1);
+      ROS_ERROR_STREAM("Could not read GPG3 status message header");
+      close(conn_);
+      return;
     }
     
-    size_t n=0;
-    while (::read(conn_, &((unsigned char*)&msg)[n+4], msg.size-n) < msg.size-n)
-      usleep(10);
+    if (::read(conn_, &((unsigned char*)&msg)[4], msg.size) < msg.size)
+    {
+      ROS_ERROR_STREAM("Could not read GPG3 status message");
+      close(conn_);
+      return;
+    }
   
     if (msg.size >= sizeof(GPGRemoteStatus)-4)
     {
@@ -134,8 +152,9 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     }
     else
     {
-      ROS_FATAL_STREAM("Invalid GPG3 status message size: " << msg.size);
-      exit(1);
+      ROS_ERROR_STREAM("Invalid GPG3 status message size: " << msg.size);
+      close(conn_);
+      return;
     }
       
     if (msg.size >= sizeof(GPGRemoteStatusGrove)-4)
@@ -161,6 +180,7 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
 
     first_ = false;
 
+    available = 0;
     ioctl(conn_, FIONREAD, &available);
   }
 }
@@ -176,7 +196,10 @@ void GPGRemoteHW::write(const ros::Time &time, const ros::Duration &period)
   msg.servo  = SERVO_CENTER_US + cmd_[2]*SERVO_US_PER_RADIAN;
 
   if (::write(conn_, &msg, sizeof(GPGRemoteCommand)) < sizeof(GPGRemoteCommand))
+  {
     ROS_ERROR_STREAM("Could not write GPG3 command message: " << strerror(errno));
+    close(conn_);
+  }
 }
 
 std::vector<int> GPGRemoteHW::getLineSensor()
