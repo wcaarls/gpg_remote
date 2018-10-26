@@ -9,8 +9,6 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "gpg_remote_node");
   ros::NodeHandle nh;
-  ros::Publisher state_pub = nh.advertise<gpg_remote::State>("state", 10);
-  ros::Publisher scan_pub = nh.advertise<sensor_msgs::LaserScan>("scan", 10);
   
   ROS_INFO("Initializing GPG3 remote node");
 
@@ -20,6 +18,10 @@ int main(int argc, char **argv)
     ROS_FATAL("GPG3 initialization failed");
     return 1;
   }
+  
+  ros::Publisher state_pub = nh.advertise<gpg_remote::State>("state", 10);
+  ros::Publisher scan_pub = nh.advertise<sensor_msgs::LaserScan>("scan", 10);
+  ros::Subscriber led_sub = nh.subscribe("led", 1000, &GPGRemoteHW::setLED, &robot);
   
   controller_manager::ControllerManager cm(&robot, nh);
 

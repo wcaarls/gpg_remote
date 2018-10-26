@@ -2,6 +2,8 @@
 #include <hardware_interface/joint_state_interface.h>
 #include <hardware_interface/robot_hw.h>
 
+#include <std_msgs/ColorRGBA.h>
+
 // From https://github.com/DexterInd/GoPiGo3/blob/master/Software/Python/gopigo3.py
 #define MOTOR_GEAR_RATIO           120
 #define ENCODER_TICKS_PER_ROTATION   6
@@ -34,7 +36,8 @@ struct GPGRemoteCommand
   uint32_t size;
   int32_t vel[2];
   uint32_t servo;
-};
+  int8_t led[3];
+} __attribute__((packed));
 
 class GPGRemoteHW : public hardware_interface::RobotHW
 {
@@ -49,6 +52,7 @@ class GPGRemoteHW : public hardware_interface::RobotHW
     double pos_[3];
     double vel_[3];
     double eff_[3];
+    double led_[3];
     int line_[5];
     float battery_;
     float distance_[4];
@@ -68,6 +72,8 @@ class GPGRemoteHW : public hardware_interface::RobotHW
     float getBatteryVoltage();
     std::vector<float> getDistanceSensor();
     std::vector<float> getLightSensor();
+    
+    void setLED(const std_msgs::ColorRGBA::ConstPtr& msg);
 
   private:
     int connect();

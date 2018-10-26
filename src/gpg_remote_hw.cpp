@@ -194,7 +194,10 @@ void GPGRemoteHW::write(const ros::Time &time, const ros::Duration &period)
   msg.vel[0] = cmd_[0]*MOTOR_TICKS_PER_RADIAN;
   msg.vel[1] = cmd_[1]*MOTOR_TICKS_PER_RADIAN;
   msg.servo  = SERVO_CENTER_US + cmd_[2]*SERVO_US_PER_RADIAN;
-
+  msg.led[0] = led_[0]*255;
+  msg.led[1] = led_[1]*255;
+  msg.led[2] = led_[2]*255;
+  
   if (::write(conn_, &msg, sizeof(GPGRemoteCommand)) < sizeof(GPGRemoteCommand))
   {
     ROS_ERROR_STREAM("Could not write GPG3 command message: " << strerror(errno));
@@ -235,6 +238,13 @@ std::vector<float> GPGRemoteHW::getLightSensor()
     val[ii] = light_[ii];
     
   return val;
+}
+
+void GPGRemoteHW::setLED(const std_msgs::ColorRGBA::ConstPtr& msg)
+{
+  led_[0] = msg->r;
+  led_[1] = msg->g;
+  led_[2] = msg->b;
 }
 
 PLUGINLIB_EXPORT_CLASS(GPGRemoteHW, hardware_interface::RobotHW)

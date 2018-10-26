@@ -29,6 +29,7 @@ def run():
         GPG.set_grove_mode(GPG.GROVE_1, GPG.GROVE_INPUT_ANALOG)
         GPG.set_grove_type(GPG.GROVE_2, GPG.GROVE_TYPE.CUSTOM)
         GPG.set_grove_mode(GPG.GROVE_2, GPG.GROVE_INPUT_ANALOG)
+        GPG.set_led(GPG.LED_WIFI, 0, 0, 0)
         
         try:
             grovepi.analogRead(0)
@@ -64,13 +65,22 @@ def run():
                     msg = ''
                     while len(msg) < sz:
                         msg = connection.recv(sz-len(msg))
-                    msg = struct.unpack('<lll', msg)
-                    
+                        
                     # Apply commands
+                    if sz == 12:
+                        msg = struct.unpack('<lll', msg)
+                        msg = msg + (0, 0, 0)
+                    elif sz == 15:
+                        msg = struct.unpack('<lllBBB', msg)
+                    else:
+                        print "Unknown message size ", sz
+                        break
+                        
                     if battery > 10.5:
                         GPG.set_motor_dps(GPG.MOTOR_LEFT, msg[0])
                         GPG.set_motor_dps(GPG.MOTOR_RIGHT, msg[1])
                         GPG.set_servo(GPG.SERVO_1, msg[2])
+                        GPG.set_led(GPG.LED_WIFI, msg[3], msg[4], msg[5])
                         
                         last_command = time.time()
                     
