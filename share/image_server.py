@@ -9,10 +9,8 @@ import time
 import picamera
 
 def run():
-    camera = picamera.PiCamera()
-    camera.resolution = (640, 480)
-    # Start a preview and let the camera warm up for 2 seconds
-    camera.start_preview()
+    camera = picamera.PiCamera(sensor_mode=4,resolution='320x240',framerate=5)
+    # Let the camera warm up for 2 seconds
     time.sleep(2)
 
     # Start a socket listening for connections on 0.0.0.0:8000 (0.0.0.0 means
@@ -30,7 +28,6 @@ def run():
 
         try:
             stream = io.BytesIO()
-            start = time.time()
             for foo in camera.capture_continuous(stream, 'jpeg', use_video_port=True):
                 # Write the length of the capture to the stream and flush to
                 # ensure it actually gets sent
@@ -42,9 +39,6 @@ def run():
                 # Reset the stream for the next capture
                 stream.seek(0)
                 stream.truncate()
-                # Rate limit to 5Hz
-                time.sleep(max(0, start - time.time() + 0.2)) 
-                start = time.time()
         except Exception as e:
             print "Image server error: ", e
             pass

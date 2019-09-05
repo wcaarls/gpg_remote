@@ -80,6 +80,7 @@ def run():
                         GPG.set_motor_dps(GPG.MOTOR_LEFT, msg[0])
                         GPG.set_motor_dps(GPG.MOTOR_RIGHT, msg[1])
                         GPG.set_servo(GPG.SERVO_1, msg[2])
+                        GPG.set_servo(GPG.SERVO_2, msg[2])
                         GPG.set_led(GPG.LED_WIFI, msg[3], msg[4], msg[5])
                         
                         last_command = time.time()
