@@ -1,5 +1,7 @@
 <launch>
 
+  <arg name="host" default="" />
+
   <node name="gpg_remote_hw" pkg="gpg_remote" type="node" respawn="false"
     output="screen" ns="/gpg" />
 
