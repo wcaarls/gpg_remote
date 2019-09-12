@@ -15,7 +15,7 @@ def fake_depth_publisher():
     rospy.init_node('fake_depth_publisher', anonymous=True)
     bridge = CvBridge()
     
-    image = np.zeros((480, 640), np.float32)
+    image = np.zeros((240, 320), np.float32)
     image[:] = 1
     
     msg = bridge.cv2_to_imgmsg(image, "passthrough")

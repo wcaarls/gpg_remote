@@ -1,27 +1,26 @@
 <launch>
-
-  <arg name="host" default="" />
-
-  <node name="gpg_remote_hw" pkg="gpg_remote" type="node" respawn="false"
-    output="screen" ns="/gpg" />
-
-  <node name="gpg_remote_camera" pkg="gpg_remote" type="image_publisher" respawn="false"
-    output="screen" ns="/gpg" />
-
-  <node name="gpg_remote_depth" pkg="gpg_remote" type="fake_depth_publisher" respawn="false"
-    output="screen" ns="/gpg" />
+  <arg name="host" default=""/>
 
   <rosparam file="$(find gpg_remote)/cfg/gpg_remote.yaml" ns="/gpg" command="load"/>
   <group if="$(eval arg('host') != '')">
     <param name="/gpg/host" value="$(arg host)"/>
   </group>
-
-  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-    output="screen" ns="/gpg" args="--shutdown-timeout 1 mobile_base_controller servo_controller joint_state_controller"/>
-
   <param name="/gpg/camera_info_url" value="$(find gpg_remote)/cfg/rpi_camera.yaml"/>
 
-  <node name="camera_info_publisher" pkg="gpg_remote" type="camera_info_publisher" respawn="false"
-    output="screen" ns="/gpg"/>
-	  
+  <group ns="/gpg">
+    <node name="gpg_remote_hw" pkg="gpg_remote" type="node" respawn="false"
+      output="screen"/>
+
+    <node name="gpg_remote_camera" pkg="gpg_remote" type="image_publisher" respawn="false"
+      output="screen"/>
+
+    <node name="gpg_remote_depth" pkg="gpg_remote" type="fake_depth_publisher" respawn="false"
+      output="screen"/>
+
+    <node name="camera_info_publisher" pkg="gpg_remote" type="camera_info_publisher" respawn="false"
+      output="screen"/>
+
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+      output="screen" args="--shutdown-timeout 1 mobile_base_controller servo_controller joint_state_controller"/>
+  </group>
 </launch>
