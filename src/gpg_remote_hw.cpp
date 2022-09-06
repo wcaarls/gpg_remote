@@ -8,11 +8,18 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 
-#include <pluginlib/class_list_macros.h>
+#include <hardware_interface/types/hardware_interface_type_values.hpp>
+#include <pluginlib/class_list_macros.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <vector>
+#include <string>
 
 #include "gpg_remote/gpg_remote_hw.h"
 
-int GPGRemoteHW::connect()
+#define ROS_ERROR_STREAM(x) RCLCPP_ERROR_STREAM(rclcpp::get_logger("GPGRemoteHardware"), x)
+#define ROS_INFO_STREAM(x) RCLCPP_INFO_STREAM(rclcpp::get_logger("GPGRemoteHardware"), x)
+
+int GPGRemoteHardware::connect()
 {
   int optval = 1;
 
@@ -25,22 +32,18 @@ int GPGRemoteHW::connect()
   bzero((char *) &addr, sizeof(addr));
   addr.sin_family = AF_INET;
   
-  std::string host_name, port_number="8002";
-  nh_.getParam("host", host_name);
-  nh_.getParam("data_port", port_number);
-
-  server = gethostbyname(host_name.c_str());
+  server = gethostbyname(host_.c_str());
   if (!server)
   {
-    ROS_ERROR_STREAM("Could not resolve GPG3 hostname '" << host_name << "'");
+    ROS_ERROR_STREAM("Could not resolve GPG3 hostname '" << host_ << "'");
     return -1;
   }
 
   bcopy((char *)server->h_addr, (char *)&addr.sin_addr.s_addr, server->h_length);
-  addr.sin_port = htons(atoi(port_number.c_str()));
+  addr.sin_port = htons(port_);
 
-  ROS_INFO_STREAM("Connecting to GPG3 at " << host_name << ":" << port_number);
-  while (::connect(fd,(struct sockaddr *) &addr,sizeof(addr)) < 0 && ros::ok())
+  ROS_INFO_STREAM("Connecting to GPG3 at " << host_ << ":" << port_);
+  while (::connect(fd,(struct sockaddr *) &addr,sizeof(addr)) < 0 && rclcpp::ok())
   {
     ROS_ERROR_STREAM("Could not connect to GPG3: " << strerror(errno));
     sleep(1);
@@ -49,44 +52,164 @@ int GPGRemoteHW::connect()
   return fd;
 }
 
-bool GPGRemoteHW::init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh)
+hardware_interface::CallbackReturn GPGRemoteHardware::on_init(const hardware_interface::HardwareInfo & info)
 {
-  ROS_INFO("Initializing GPG3 hardware interface");
+  ROS_INFO_STREAM("Initializing GPG3 hardware interface");
+
+  if (hardware_interface::SystemInterface::on_init(info) != CallbackReturn::SUCCESS)
+    return CallbackReturn::ERROR;
+    
+  host_ = info_.hardware_parameters["host"];
+  port_ = std::stoul(info_.hardware_parameters["port"]);
   
-  nh_ = robot_hw_nh;
-
-  // connect and register the joint state interface
-  hardware_interface::JointStateHandle state_handle_left("left_wheel", &pos_[0], &vel_[0], &eff_[0]);
-  jnt_state_interface_.registerHandle(state_handle_left);
-
-  hardware_interface::JointStateHandle state_handle_right("right_wheel", &pos_[1], &vel_[1], &eff_[1]);
-  jnt_state_interface_.registerHandle(state_handle_right);
-
-  hardware_interface::JointStateHandle state_handle_servo("servo", &pos_[2], &vel_[2], &eff_[2]);
-  jnt_state_interface_.registerHandle(state_handle_servo);
-
-  registerInterface(&jnt_state_interface_);
-
-  // connect and register the joint velocity interface
-  hardware_interface::JointHandle vel_handle_left(jnt_state_interface_.getHandle("left_wheel"), &cmd_[0]);
-  jnt_vel_interface_.registerHandle(vel_handle_left);
-
-  hardware_interface::JointHandle vel_handle_right(jnt_state_interface_.getHandle("right_wheel"), &cmd_[1]);
-  jnt_vel_interface_.registerHandle(vel_handle_right);
-
-  registerInterface(&jnt_vel_interface_);
-
-  hardware_interface::JointHandle pos_handle_servo(jnt_state_interface_.getHandle("servo"), &cmd_[2]);
-  jnt_pos_interface_.registerHandle(pos_handle_servo);
-
-  registerInterface(&jnt_pos_interface_);
-
-  conn_ = connect();
+  if (info_.joints.size() != 3)
+  {
+    ROS_ERROR_STREAM("Expected 3 joints, got " << info_.joints.size());
+    return CallbackReturn::ERROR;
+  }
   
-  return (conn_ >= 0);
+  for (int ii=0; ii < 2; ++ii)
+  {
+    hardware_interface::ComponentInfo & joint = info_.joints[ii];
+    
+    if (joint.command_interfaces.size() != 1)
+    {
+      ROS_ERROR_STREAM("Joint " << joint.name << " has " << joint.command_interfaces.size() << " command interfaces, expected 1");
+      return CallbackReturn::ERROR;
+    }
+    if (joint.command_interfaces[0].name != hardware_interface::HW_IF_VELOCITY)
+    {
+      ROS_ERROR_STREAM("Joint " << joint.name << " has command interface " << joint.command_interfaces[0].name << ", expected " << hardware_interface::HW_IF_VELOCITY);
+      return CallbackReturn::ERROR;
+    }
+    if (joint.state_interfaces.size() != 2)
+    {
+      ROS_ERROR_STREAM("Joint " << joint.name << " has " << joint.state_interfaces.size() << " state interfaces, expected 2");
+      return CallbackReturn::ERROR;
+    }
+    if (joint.state_interfaces[0].name != hardware_interface::HW_IF_POSITION)
+    {
+      ROS_ERROR_STREAM("Joint " << joint.name << " state interface 0 is " << joint.state_interfaces[0].name << ", expected " << hardware_interface::HW_IF_POSITION);
+      return CallbackReturn::ERROR;
+    }
+    if (joint.state_interfaces[1].name != hardware_interface::HW_IF_VELOCITY)
+    {
+      ROS_ERROR_STREAM("Joint " << joint.name << " state interface 1 is " << joint.state_interfaces[1].name << ", expected " << hardware_interface::HW_IF_VELOCITY);
+      return CallbackReturn::ERROR;
+    }
+  }
+  
+  hardware_interface::ComponentInfo & joint = info_.joints[2];
+  if (joint.command_interfaces.size() != 1)
+  {
+    ROS_ERROR_STREAM("Joint " << joint.name << " has " << joint.command_interfaces.size() << " command interfaces, expected 1");
+    return CallbackReturn::ERROR;
+  }
+  if (joint.command_interfaces[0].name != hardware_interface::HW_IF_POSITION)
+  {
+    ROS_ERROR_STREAM("Joint " << joint.name << " has command interface " << joint.command_interfaces[0].name << ", expected " << hardware_interface::HW_IF_POSITION);
+    return CallbackReturn::ERROR;
+  }
+  if (joint.state_interfaces.size() != 1)
+  {
+    ROS_ERROR_STREAM("Joint " << joint.name << " has " << joint.state_interfaces.size() << " state interfaces, expected 1");
+    return CallbackReturn::ERROR;
+  }
+  if (joint.state_interfaces[0].name != hardware_interface::HW_IF_POSITION)
+  {
+    ROS_ERROR_STREAM("Joint " << joint.name << " state interface 0 is " << joint.state_interfaces[0].name << ", expected " << hardware_interface::HW_IF_POSITION);
+    return CallbackReturn::ERROR;
+  }
+
+  return CallbackReturn::SUCCESS;
 }
 
-void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
+std::vector<hardware_interface::StateInterface> GPGRemoteHardware::export_state_interfaces()
+{
+    ROS_INFO_STREAM("export_state_interfaces");
+
+    std::vector<hardware_interface::StateInterface> state_interfaces;
+    for (size_t ii = 0; ii != 3; ++ii)
+    {
+        ROS_INFO_STREAM("Adding position state interface: " << info_.joints[ii].name.c_str());
+        state_interfaces.emplace_back(
+            hardware_interface::StateInterface(
+                info_.joints[ii].name, hardware_interface::HW_IF_POSITION, &pos_[ii]
+            )
+        );
+        
+        if (ii < 2)
+        {
+          ROS_INFO_STREAM("Adding velocity state interface: " << info_.joints[ii].name.c_str());
+          state_interfaces.emplace_back(
+              hardware_interface::StateInterface(
+                  info_.joints[ii].name, hardware_interface::HW_IF_VELOCITY, &vel_[ii]
+              )
+          );
+        }
+    }
+    return state_interfaces;
+}
+
+std::vector<hardware_interface::CommandInterface> GPGRemoteHardware::export_command_interfaces()
+{
+    ROS_INFO_STREAM("export_command_interfaces");
+
+    std::vector<hardware_interface::CommandInterface> command_interfaces;
+    for (size_t ii = 0; ii != 3; ++ii) {
+        if (ii < 2)
+        {
+          ROS_INFO_STREAM("Adding velocity command interface: " << info_.joints[ii].name.c_str());
+          command_interfaces.emplace_back(
+              hardware_interface::CommandInterface(
+                  info_.joints[ii].name, hardware_interface::HW_IF_VELOCITY, &cmd_[ii]
+              )
+          );
+        }
+        else
+        {
+          ROS_INFO_STREAM("Adding position command interface: " << info_.joints[ii].name.c_str());
+          command_interfaces.emplace_back(
+              hardware_interface::CommandInterface(
+                  info_.joints[ii].name, hardware_interface::HW_IF_POSITION, &cmd_[ii]
+              )
+          );
+        }
+    }
+    return command_interfaces;
+}
+
+hardware_interface::CallbackReturn GPGRemoteHardware::on_activate(const rclcpp_lifecycle::State & previous_state)
+{
+    ROS_INFO_STREAM("GPGRemote hardware starting ...");
+    
+    for (size_t ii = 0; ii != 3; ++ii)
+    {
+      pos_[ii] = 0.0f;
+      if (ii < 2) vel_[ii] = 0.0f;
+      cmd_[ii] = 0.0f;
+    }
+    
+    conn_ = connect();
+    
+    if (conn_ <= 0)
+      return CallbackReturn::ERROR;
+
+    ROS_INFO_STREAM("GPGRemote hardware started");
+    return CallbackReturn::SUCCESS;
+}
+
+hardware_interface::CallbackReturn GPGRemoteHardware::on_deactivate(const rclcpp_lifecycle::State & previous_state)
+{
+    ROS_INFO_STREAM("GPGRemote hardware stopping ...");
+    
+    close(conn_);
+
+    ROS_INFO_STREAM("GPGRemote hardware stopped");
+    return CallbackReturn::SUCCESS;
+}
+
+hardware_interface::return_type GPGRemoteHardware::read(const rclcpp::Time & time, const rclcpp::Duration & period)
 {
   int available=0;
   GPGRemoteStatusGrove msg;
@@ -103,7 +226,10 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
   }  
 
   if (conn_ < 0)
-    exit(1);
+  {
+    ROS_INFO_STREAM("NODE SHOULD EXIT");
+    return hardware_interface::return_type::ERROR; // exit(1)
+  }
 
   ioctl(conn_, FIONREAD, &available);
   
@@ -113,14 +239,14 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     {
       ROS_ERROR_STREAM("Could not read GPG3 status message header");
       close(conn_);
-      return;
+      return hardware_interface::return_type::ERROR;
     }
     
     if (::read(conn_, &((unsigned char*)&msg)[4], msg.size) < msg.size)
     {
       ROS_ERROR_STREAM("Could not read GPG3 status message");
       close(conn_);
-      return;
+      return hardware_interface::return_type::ERROR;
     }
   
     if (msg.size >= sizeof(GPGRemoteStatus)-4)
@@ -133,14 +259,11 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
       
         double prevpos = pos_[ii];
         pos_[ii] = msg.pos[ii]/MOTOR_TICKS_PER_RADIAN;
-        vel_[ii] = (pos_[ii]-prevpos)/period.toSec();
-        eff_[ii] = 0;
+        vel_[ii] = (pos_[ii]-prevpos)/period.seconds();
       }
       
       // Servo
       pos_[2] = cmd_[2];
-      vel_[2] = 0;
-      eff_[2] = 0;
       
       // Line sensor
       for (int ii=0; ii<5; ++ii)
@@ -154,7 +277,7 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     {
       ROS_ERROR_STREAM("Invalid GPG3 status message size: " << msg.size);
       close(conn_);
-      return;
+      return hardware_interface::return_type::ERROR;
     }
       
     if (msg.size >= sizeof(GPGRemoteStatusGrove)-4)
@@ -183,9 +306,11 @@ void GPGRemoteHW::read(const ros::Time &time, const ros::Duration &period)
     available = 0;
     ioctl(conn_, FIONREAD, &available);
   }
+  
+  return hardware_interface::return_type::OK;
 }
 
-void GPGRemoteHW::write(const ros::Time &time, const ros::Duration &period)
+hardware_interface::return_type GPGRemoteHardware::write(const rclcpp::Time & time, const rclcpp::Duration & period)
 {
   GPGRemoteCommand msg;
 
@@ -202,49 +327,10 @@ void GPGRemoteHW::write(const ros::Time &time, const ros::Duration &period)
   {
     ROS_ERROR_STREAM("Could not write GPG3 command message: " << strerror(errno));
     close(conn_);
+    return hardware_interface::return_type::ERROR;
   }
+  
+  return hardware_interface::return_type::OK;
 }
 
-std::vector<int> GPGRemoteHW::getLineSensor()
-{
-  std::vector<int> val(5);
-
-  for (int ii=0; ii<5; ++ii)
-    val[ii] = line_[ii];
-    
-  return val;
-}
-
-float GPGRemoteHW::getBatteryVoltage()
-{
-  return battery_;
-}
-
-std::vector<float> GPGRemoteHW::getDistanceSensor()
-{
-  std::vector<float> val(4);
-
-  for (int ii=0; ii<4; ++ii)
-    val[ii] = distance_[ii];
-    
-  return val;
-}
-
-std::vector<float> GPGRemoteHW::getLightSensor()
-{
-  std::vector<float> val(2);
-
-  for (int ii=0; ii<2; ++ii)
-    val[ii] = light_[ii];
-    
-  return val;
-}
-
-void GPGRemoteHW::setLED(const std_msgs::ColorRGBA::ConstPtr& msg)
-{
-  led_[0] = msg->r;
-  led_[1] = msg->g;
-  led_[2] = msg->b;
-}
-
-PLUGINLIB_EXPORT_CLASS(GPGRemoteHW, hardware_interface::RobotHW)
+PLUGINLIB_EXPORT_CLASS(GPGRemoteHardware, hardware_interface::SystemInterface)

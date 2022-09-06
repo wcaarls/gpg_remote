@@ -1,6 +1,0 @@
-<launch>
-
-  <node name="rviz_teleop" pkg="rviz" type="rviz" respawn="false"
-    output="screen" args="-d $(find gpg_remote)/cfg/teleop.rviz"/>
-
-</launch>

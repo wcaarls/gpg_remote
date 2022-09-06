@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<robot name="gopigo3">
+  <ros2_control name="gpg_remote" type="system">
+    <hardware>
+      <plugin>gpg_remote/GPGRemoteHardware</plugin>
+      <param name="host">192.168.0.201</param>
+      <param name="port">8002</param>
+    </hardware>
+    
+    <joint name="left_wheel">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>  
+    </joint>
+    <joint name="right_wheel">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>  
+    </joint>
+    <joint name="servo">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+    </joint>
+  </ros2_control>
+</robot>

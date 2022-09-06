@@ -1,8 +1,7 @@
-#include <hardware_interface/joint_command_interface.h>
-#include <hardware_interface/joint_state_interface.h>
-#include <hardware_interface/robot_hw.h>
-
-#include <std_msgs/ColorRGBA.h>
+#include <hardware_interface/system_interface.hpp>
+#include <rclcpp/macros.hpp>
+#include <vector>
+#include <string>
 
 // From https://github.com/DexterInd/GoPiGo3/blob/master/Software/Python/gopigo3.py
 #define MOTOR_GEAR_RATIO           120
@@ -39,19 +38,23 @@ struct GPGRemoteCommand
   int8_t led[3];
 } __attribute__((packed));
 
-class GPGRemoteHW : public hardware_interface::RobotHW
+class GPGRemoteHardware : public hardware_interface::SystemInterface
 {
+  public:
+    RCLCPP_SHARED_PTR_DEFINITIONS(GPGRemoteHardware)
+
+    virtual CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
+    virtual std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
+    virtual std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
+    virtual CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
+    virtual CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
+    virtual hardware_interface::return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
+    virtual hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
+
   private:
-    ros::NodeHandle nh_;
-  
-    hardware_interface::JointStateInterface jnt_state_interface_;
-    hardware_interface::VelocityJointInterface jnt_vel_interface_;
-    hardware_interface::PositionJointInterface jnt_pos_interface_;
-    
     double cmd_[3];
     double pos_[3];
-    double vel_[3];
-    double eff_[3];
+    double vel_[2];
     double led_[3];
     int line_[5];
     float battery_;
@@ -61,19 +64,11 @@ class GPGRemoteHW : public hardware_interface::RobotHW
     int conn_;
     bool first_;
     
+    std::string host_;
+    int port_;
+    
   public:
-    GPGRemoteHW() : conn_(-1), first_(true) { }
-
-    virtual bool init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh);
-    virtual void read(const ros::Time & time, const ros::Duration &period);
-    virtual void write(const ros::Time & time, const ros::Duration &period);
-    
-    std::vector<int> getLineSensor();
-    float getBatteryVoltage();
-    std::vector<float> getDistanceSensor();
-    std::vector<float> getLightSensor();
-    
-    void setLED(const std_msgs::ColorRGBA::ConstPtr& msg);
+    GPGRemoteHardware() : conn_(-1), first_(true) { }
 
   private:
     int connect();

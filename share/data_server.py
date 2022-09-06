@@ -57,10 +57,10 @@ def run():
                 
                 ready = select.select([connection], [], [], 0.100)[0] # 100ms timeout
                 
-                if ready:
+                while ready:
                     sz = struct.unpack('<L', connection.recv(struct.calcsize('<L')))[0]
                     if not sz:
-                        break
+                        raise Exception("Could not unpack")
                         
                     msg = ''
                     while len(msg) < sz:
@@ -84,6 +84,9 @@ def run():
                         GPG.set_led(GPG.LED_WIFI, msg[3], msg[4], msg[5])
                         
                         last_command = time.time()
+                        
+                    ready = select.select([connection], [], [], 0.100)[0] # 100ms timeout
+                    
                     
                 # Auto-stop if no commands are sent
                 if time.time() > last_command + 1:
@@ -99,7 +102,6 @@ def run():
                     msg = msg + struct.pack('<llll', grovepi.analogRead(1), grovepi.analogRead(0), grovepi.analogRead(2), grovepi.analogRead(3))
                     msg = msg + struct.pack('<ll', GPG.get_grove_analog(GPG.GROVE_1_1), GPG.get_grove_analog(GPG.GROVE_2_1))
                 msg = struct.pack('<L', len(msg)) + msg
-                
                 connection.send(msg)
         except Exception as e:
             print "Data server error: ", e

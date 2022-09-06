@@ -34,12 +34,11 @@
 #
 # Revision $Id$
 
-## Simple talker demo that published std_msgs/Strings messages
-## to the 'chatter' topic
-
 # http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
 
-import rospy
+import rclpy
+from rclpy.node import Node
+
 import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
@@ -51,42 +50,59 @@ import socket
 import struct
 import numpy as np
 
-def image_publisher():
-    # Setup ROS    
-    pub = rospy.Publisher('image', Image, queue_size=10)
-    rospy.init_node('image_publisher', anonymous=True)
-    bridge = CvBridge()
+class ImagePublisher(Node):
+    def __init__(self):
+        super().__init__('image_publisher')
+        
+        self.pub = self.create_publisher(Image, 'image', 10)
+        self.bridge = CvBridge()
     
-    host_name = rospy.get_param("host")
-    port_number = rospy.get_param("image_port")
-    
-    # Connect to Raspberry Pi
-    client_socket = socket.socket()
-    client_socket.connect((host_name, port_number))
-    connection = client_socket.makefile('wb')
-    
-    while not rospy.is_shutdown():
-        image_len = struct.unpack('<L', connection.read(struct.calcsize('<L')))[0]
+        self.declare_parameter('host', '192.168.0.201')
+        self.declare_parameter('port', 8000)
+        
+        # Connect to Raspberry Pi
+        host = self.get_parameter('host').value
+        port = self.get_parameter('port').value
+        
+        self.get_logger().info('Connecting to %s:%d' % (host, port))
+        
+        self.client_socket = socket.socket()
+        self.client_socket.connect((host, port))
+        self.connection = self.client_socket.makefile('rb')
+        
+        self.get_logger().info('Spinning')
+
+    def readimage(self):
+        image_len = struct.unpack('<L', self.connection.read(struct.calcsize('<L')))[0]
         if not image_len:
-            break
+            return
         # Construct a stream to hold the image data and read the image
         # data from the connection
         image_stream = io.BytesIO()
-        image_stream.write(connection.read(image_len))
+        image_stream.write(self.connection.read(image_len))
+        
         # Rewind the stream, open it as an image with PIL and do some
         # processing on it
         image_stream.seek(0)
-        frame = np.fromstring(image_stream.getvalue(), dtype=np.uint8)
+        frame = np.frombuffer(image_stream.getvalue(), dtype=np.uint8)
         image = cv2.imdecode(frame, cv2.IMREAD_COLOR)
         
-        msg = bridge.cv2_to_imgmsg(image, "bgr8")
+        msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
         msg.header.frame_id = "camera_link"
-        msg.header.stamp = rospy.Time.now()
+        msg.header.stamp = self.get_clock().now().to_msg()
         
-        pub.publish(msg)
+        self.pub.publish(msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = ImagePublisher()
+    
+    while rclpy.ok():
+        node.readimage()
+        rclpy.spin_once(node, timeout_sec=0)
+    
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
-    try:
-        image_publisher()
-    except rospy.ROSInterruptException:
-        pass
+    main()
