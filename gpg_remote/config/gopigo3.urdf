@@ -3,7 +3,7 @@
   <ros2_control name="gpg_remote" type="system">
     <hardware>
       <plugin>gpg_remote/GPGRemoteHardware</plugin>
-      <param name="host">localhost</param>
+      <param name="host">192.168.0.201</param>
       <param name="port">8002</param>
     </hardware>
     
