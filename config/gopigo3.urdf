@@ -3,7 +3,7 @@
   <ros2_control name="gpg_remote" type="system">
     <hardware>
       <plugin>gpg_remote/GPGRemoteHardware</plugin>
-      <param name="host">192.168.0.201</param>
+      <param name="host">localhost</param>
       <param name="port">8002</param>
     </hardware>
     
@@ -21,5 +21,15 @@
       <command_interface name="position"/>
       <state_interface name="position"/>
     </joint>
+    <sensor name="line">
+       <state_interface name="level0"/>
+       <state_interface name="level1"/>
+       <state_interface name="level2"/>
+       <state_interface name="level3"/>
+       <state_interface name="level4"/>
+    </sensor>
+    <sensor name="battery">
+       <state_interface name="voltage"/>
+    </sensor>
   </ros2_control>
 </robot>

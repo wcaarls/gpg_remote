@@ -16,10 +16,18 @@ rosidl_generate_interfaces(${PROJECT_NAME}_idl
   msg/State.msg
 )
 
-add_library(${PROJECT_NAME} src/gpg_remote_hw.cpp)
+add_library(${PROJECT_NAME} src/gpg_remote_hw.cpp
+                            src/gpg_remote_broadcaster.cpp)
+
+# Because we are using our own messages
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_idl)
+rosidl_get_typesupport_target(fastrtps_typesupport_target ${PROJECT_NAME}_idl "rosidl_typesupport_fastrtps_cpp")
+target_link_libraries(${PROJECT_NAME} "${fastrtps_typesupport_target}")
+
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 ament_target_dependencies(${PROJECT_NAME} rclcpp hardware_interface pluginlib)
 pluginlib_export_plugin_description_file(hardware_interface gpg_remote_hardware.xml)
+pluginlib_export_plugin_description_file(controller_interface gpg_remote_controller.xml)
 
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})

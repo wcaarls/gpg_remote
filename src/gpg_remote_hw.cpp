@@ -14,7 +14,7 @@
 #include <vector>
 #include <string>
 
-#include "gpg_remote/gpg_remote_hw.h"
+#include "gpg_remote/gpg_remote_hw.hpp"
 
 #define ROS_ERROR_STREAM(x) RCLCPP_ERROR_STREAM(rclcpp::get_logger("GPGRemoteHardware"), x)
 #define ROS_INFO_STREAM(x) RCLCPP_INFO_STREAM(rclcpp::get_logger("GPGRemoteHardware"), x)
@@ -54,8 +54,6 @@ int GPGRemoteHardware::connect()
 
 hardware_interface::CallbackReturn GPGRemoteHardware::on_init(const hardware_interface::HardwareInfo & info)
 {
-  ROS_INFO_STREAM("Initializing GPG3 hardware interface");
-
   if (hardware_interface::SystemInterface::on_init(info) != CallbackReturn::SUCCESS)
     return CallbackReturn::ERROR;
     
@@ -67,7 +65,8 @@ hardware_interface::CallbackReturn GPGRemoteHardware::on_init(const hardware_int
     ROS_ERROR_STREAM("Expected 3 joints, got " << info_.joints.size());
     return CallbackReturn::ERROR;
   }
-  
+
+  // Wheels  
   for (int ii=0; ii < 2; ++ii)
   {
     hardware_interface::ComponentInfo & joint = info_.joints[ii];
@@ -99,6 +98,7 @@ hardware_interface::CallbackReturn GPGRemoteHardware::on_init(const hardware_int
     }
   }
   
+  // Servo
   hardware_interface::ComponentInfo & joint = info_.joints[2];
   if (joint.command_interfaces.size() != 1)
   {
@@ -120,18 +120,51 @@ hardware_interface::CallbackReturn GPGRemoteHardware::on_init(const hardware_int
     ROS_ERROR_STREAM("Joint " << joint.name << " state interface 0 is " << joint.state_interfaces[0].name << ", expected " << hardware_interface::HW_IF_POSITION);
     return CallbackReturn::ERROR;
   }
+  
+  if (info_.sensors.size() != 2)
+  {
+    ROS_ERROR_STREAM("Expected 2 sensors, got " << info_.sensors.size());
+    return CallbackReturn::ERROR;
+  }
+   
+  // Line
+  hardware_interface::ComponentInfo & line = info_.sensors[0];
+  if (line.state_interfaces.size() != 5)
+  {
+    ROS_ERROR_STREAM("Sensor " << line.name << " has " << line.state_interfaces.size() << " state interfaces, expected 1");
+    return CallbackReturn::ERROR;
+  }
+  
+  for (size_t ii = 0; ii != 5; ++ii)
+  {
+    if (line.state_interfaces[ii].name != "level" + std::to_string(ii))
+    {
+      ROS_ERROR_STREAM("Sensor " << line.name << " state interface " << ii << " is " << line.state_interfaces[0].name << ", expected level" << std::to_string(ii));
+      return CallbackReturn::ERROR;
+    }
+  }
+  
+  // Battery
+  hardware_interface::ComponentInfo & battery = info_.sensors[1];
+  if (battery.state_interfaces.size() != 1)
+  {
+    ROS_ERROR_STREAM("Sensor " << battery.name << " has " << battery.state_interfaces.size() << " state interfaces, expected 1");
+    return CallbackReturn::ERROR;
+  }
+  if (battery.state_interfaces[0].name != "voltage")
+  {
+    ROS_ERROR_STREAM("Sensor " << battery.name << " state interface 0 is " << battery.state_interfaces[0].name << ", expected voltage");
+    return CallbackReturn::ERROR;
+  }
 
   return CallbackReturn::SUCCESS;
 }
 
 std::vector<hardware_interface::StateInterface> GPGRemoteHardware::export_state_interfaces()
 {
-    ROS_INFO_STREAM("export_state_interfaces");
-
     std::vector<hardware_interface::StateInterface> state_interfaces;
     for (size_t ii = 0; ii != 3; ++ii)
     {
-        ROS_INFO_STREAM("Adding position state interface: " << info_.joints[ii].name.c_str());
         state_interfaces.emplace_back(
             hardware_interface::StateInterface(
                 info_.joints[ii].name, hardware_interface::HW_IF_POSITION, &pos_[ii]
@@ -140,7 +173,6 @@ std::vector<hardware_interface::StateInterface> GPGRemoteHardware::export_state_
         
         if (ii < 2)
         {
-          ROS_INFO_STREAM("Adding velocity state interface: " << info_.joints[ii].name.c_str());
           state_interfaces.emplace_back(
               hardware_interface::StateInterface(
                   info_.joints[ii].name, hardware_interface::HW_IF_VELOCITY, &vel_[ii]
@@ -148,18 +180,31 @@ std::vector<hardware_interface::StateInterface> GPGRemoteHardware::export_state_
           );
         }
     }
+    
+    for (size_t ii = 0; ii != 5; ++ii)
+    {
+        state_interfaces.emplace_back(
+            hardware_interface::StateInterface(
+                info_.sensors[0].name, "level" + std::to_string(ii), &line_[ii]
+            )
+        );
+    }
+    
+    state_interfaces.emplace_back(
+        hardware_interface::StateInterface(
+            info_.sensors[1].name, "voltage", &battery_
+        )
+    );
+    
     return state_interfaces;
 }
 
 std::vector<hardware_interface::CommandInterface> GPGRemoteHardware::export_command_interfaces()
 {
-    ROS_INFO_STREAM("export_command_interfaces");
-
     std::vector<hardware_interface::CommandInterface> command_interfaces;
     for (size_t ii = 0; ii != 3; ++ii) {
         if (ii < 2)
         {
-          ROS_INFO_STREAM("Adding velocity command interface: " << info_.joints[ii].name.c_str());
           command_interfaces.emplace_back(
               hardware_interface::CommandInterface(
                   info_.joints[ii].name, hardware_interface::HW_IF_VELOCITY, &cmd_[ii]
@@ -168,7 +213,6 @@ std::vector<hardware_interface::CommandInterface> GPGRemoteHardware::export_comm
         }
         else
         {
-          ROS_INFO_STREAM("Adding position command interface: " << info_.joints[ii].name.c_str());
           command_interfaces.emplace_back(
               hardware_interface::CommandInterface(
                   info_.joints[ii].name, hardware_interface::HW_IF_POSITION, &cmd_[ii]
@@ -181,8 +225,6 @@ std::vector<hardware_interface::CommandInterface> GPGRemoteHardware::export_comm
 
 hardware_interface::CallbackReturn GPGRemoteHardware::on_activate(const rclcpp_lifecycle::State & previous_state)
 {
-    ROS_INFO_STREAM("GPGRemote hardware starting ...");
-    
     for (size_t ii = 0; ii != 3; ++ii)
     {
       pos_[ii] = 0.0f;
@@ -195,17 +237,13 @@ hardware_interface::CallbackReturn GPGRemoteHardware::on_activate(const rclcpp_l
     if (conn_ <= 0)
       return CallbackReturn::ERROR;
 
-    ROS_INFO_STREAM("GPGRemote hardware started");
     return CallbackReturn::SUCCESS;
 }
 
 hardware_interface::CallbackReturn GPGRemoteHardware::on_deactivate(const rclcpp_lifecycle::State & previous_state)
 {
-    ROS_INFO_STREAM("GPGRemote hardware stopping ...");
-    
     close(conn_);
 
-    ROS_INFO_STREAM("GPGRemote hardware stopped");
     return CallbackReturn::SUCCESS;
 }
 
@@ -268,7 +306,7 @@ hardware_interface::return_type GPGRemoteHardware::read(const rclcpp::Time & tim
       // Line sensor
       for (int ii=0; ii<5; ++ii)
         if (msg.line[ii] < 1024)
-          line_[ii] = msg.line[ii];
+          line_[ii] = (double)msg.line[ii];
         
       // Battery voltage
       battery_ = msg.battery;

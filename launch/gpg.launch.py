@@ -60,6 +60,12 @@ def generate_launch_description():
         arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
     )
 
+    gpg_remote_broadcaster_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["gpg_remote_broadcaster", "--controller-manager", "/controller_manager"],
+    )
+
     servo_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -84,7 +90,7 @@ def generate_launch_description():
     delay_robot_controller_spawner_after_joint_state_broadcaster_spawner = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
-            on_exit=[robot_controller_spawner, servo_controller_spawner],
+            on_exit=[robot_controller_spawner, servo_controller_spawner, gpg_remote_broadcaster_spawner],
         )
     )
 

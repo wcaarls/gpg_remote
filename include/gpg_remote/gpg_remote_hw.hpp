@@ -56,10 +56,10 @@ class GPGRemoteHardware : public hardware_interface::SystemInterface
     double pos_[3];
     double vel_[2];
     double led_[3];
-    int line_[5];
-    float battery_;
-    float distance_[4];
-    float light_[2];
+    double line_[5];
+    double battery_;
+    double distance_[4];
+    double light_[2];
     
     int conn_;
     bool first_;
