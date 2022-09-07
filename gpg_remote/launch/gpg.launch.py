@@ -46,6 +46,17 @@ def generate_launch_description():
         parameters=[robot_description, robot_controllers],
         output="both",
     )
+    
+    camera_config = os.path.join(
+      get_package_share_directory('gpg_remote'),
+      'camera.yaml'
+      )
+    image_publisher_node = Node(
+        package="gpg_remote",
+        executable="image_publisher",
+        parameters=[camera_config],
+        output="both",
+    )
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",
@@ -96,6 +107,7 @@ def generate_launch_description():
 
     nodes = [
         control_node,
+        image_publisher_node,
         joint_state_broadcaster_spawner,
         delay_rviz_after_joint_state_broadcaster_spawner,
         delay_robot_controller_spawner_after_joint_state_broadcaster_spawner,

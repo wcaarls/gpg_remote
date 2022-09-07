@@ -24,7 +24,7 @@
 #include "controller_interface/controller_interface.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
-#include "gpg_remote/msg/state.hpp"
+#include "gpg_remote_msgs/msg/state.hpp"
 
 class GPGRemoteBroadcaster : public controller_interface::ControllerInterface
 {
@@ -48,7 +48,7 @@ protected:
   void init_msg();
 
 protected:
-  std::shared_ptr<rclcpp::Publisher<gpg_remote::msg::State>> state_publisher_;
+  std::shared_ptr<rclcpp::Publisher<gpg_remote_msgs::msg::State>> state_publisher_;
 };
 
 #endif  // GPG_REMOTE_BROADCASTER_H_

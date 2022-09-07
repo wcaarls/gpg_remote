@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #https://gist.github.com/rossbar/ebb282c3b73c41c1404123de6cea4771
 """
 pointgrey_camera_driver (at least the version installed with apt-get) doesn't

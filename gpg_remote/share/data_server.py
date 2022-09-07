@@ -85,7 +85,7 @@ def run():
                         
                         last_command = time.time()
                         
-                    ready = select.select([connection], [], [], 0.100)[0] # 100ms timeout
+                    ready = select.select([connection], [], [], 0)[0]
                     
                     
                 # Auto-stop if no commands are sent

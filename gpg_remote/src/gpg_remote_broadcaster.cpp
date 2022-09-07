@@ -70,7 +70,7 @@ controller_interface::InterfaceConfiguration GPGRemoteBroadcaster::state_interfa
 controller_interface::CallbackReturn GPGRemoteBroadcaster::on_configure(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  state_publisher_ = get_node()->create_publisher<gpg_remote::msg::State>(
+  state_publisher_ = get_node()->create_publisher<gpg_remote_msgs::msg::State>(
       "state", rclcpp::SystemDefaultsQoS());
 
   return CallbackReturn::SUCCESS;
@@ -91,7 +91,7 @@ controller_interface::CallbackReturn GPGRemoteBroadcaster::on_deactivate(
 controller_interface::return_type GPGRemoteBroadcaster::update(
   const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
 {
-  auto msg = gpg_remote::msg::State();
+  auto msg = gpg_remote_msgs::msg::State();
   
   for (size_t ii=0; ii != 5; ++ii)
     msg.line.push_back((int)state_interfaces_[ii].get_value());

@@ -6,26 +6,18 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 find_package(ament_cmake REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 
 find_package(rclcpp REQUIRED)
 find_package(hardware_interface REQUIRED)
+find_package(controller_interface REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(gpg_remote_msgs REQUIRED)
 
-rosidl_generate_interfaces(${PROJECT_NAME}_idl
-  msg/State.msg
-)
-
-add_library(${PROJECT_NAME} src/gpg_remote_hw.cpp
-                            src/gpg_remote_broadcaster.cpp)
-
-# Because we are using our own messages
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_idl)
-rosidl_get_typesupport_target(fastrtps_typesupport_target ${PROJECT_NAME}_idl "rosidl_typesupport_fastrtps_cpp")
-target_link_libraries(${PROJECT_NAME} "${fastrtps_typesupport_target}")
+add_library(${PROJECT_NAME} SHARED src/gpg_remote_hw.cpp
+                                   src/gpg_remote_broadcaster.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
-ament_target_dependencies(${PROJECT_NAME} rclcpp hardware_interface pluginlib)
+ament_target_dependencies(${PROJECT_NAME} rclcpp hardware_interface controller_interface pluginlib gpg_remote_msgs)
 pluginlib_export_plugin_description_file(hardware_interface gpg_remote_hardware.xml)
 pluginlib_export_plugin_description_file(controller_interface gpg_remote_controller.xml)
 
@@ -38,9 +30,13 @@ install(TARGETS ${PROJECT_NAME}
 install(DIRECTORY include/
         DESTINATION include)
 install(PROGRAMS scripts/camera_info_publisher
+                 scripts/fake_data_server
                  scripts/fake_depth_publisher
-                 scripts/get_battery scripts/image_publisher
+                 scripts/get_battery
+                 scripts/image_publisher
                  scripts/model_state_to_pose
+                 scripts/setvel
+                 scripts/teleop
         DESTINATION lib/${PROJECT_NAME})
 install(FILES launch/gpg.launch.py
               config/camera.yaml

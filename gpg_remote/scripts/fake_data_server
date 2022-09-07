@@ -43,14 +43,14 @@ def run():
                         print("Unknown message size ", sz)
                         break
                         
-                    ready = select.select([connection], [], [], 0.100)[0] # 100ms timeout
+                    ready = select.select([connection], [], [], 0)[0]
                     
                 # Construct status
-                msg = struct.pack('<ll', 0, 0)
-                msg = msg + struct.pack('<lllll', 0, 0, 0, 0, 0)
-                msg = msg + struct.pack('<f', 0.0)
-                msg = msg + struct.pack('<llll', 0, 0, 0, 0)
-                msg = msg + struct.pack('<ll', 0, 0)
+                msg = struct.pack('<ll', 1, 2)
+                msg = msg + struct.pack('<lllll', 3, 4, 5, 6, 7)
+                msg = msg + struct.pack('<f', 8.0)
+                msg = msg + struct.pack('<llll', 9, 10, 11, 12)
+                msg = msg + struct.pack('<ll', 13, 14)
                 msg = struct.pack('<L', len(msg)) + msg
                 connection.send(msg)
         except Exception as e:

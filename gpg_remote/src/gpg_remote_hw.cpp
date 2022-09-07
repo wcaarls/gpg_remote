@@ -232,6 +232,10 @@ hardware_interface::CallbackReturn GPGRemoteHardware::on_activate(const rclcpp_l
       cmd_[ii] = 0.0f;
     }
     
+    for (size_t ii = 0; ii != 3; ++ii)
+      line_[ii] = 0.0f;
+    battery_ = 0.0f;
+    
     conn_ = connect();
     
     if (conn_ <= 0)
