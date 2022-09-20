@@ -29,9 +29,7 @@ install(TARGETS ${PROJECT_NAME}
         DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY include/
         DESTINATION include)
-install(PROGRAMS scripts/camera_info_publisher
-                 scripts/fake_data_server
-                 scripts/fake_depth_publisher
+install(PROGRAMS scripts/fake_data_server
                  scripts/get_battery
                  scripts/image_publisher
                  scripts/model_state_to_pose

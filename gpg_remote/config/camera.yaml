@@ -2,27 +2,12 @@ image_publisher:
   ros__parameters:
     host: 192.168.0.201
     port: 8000
-
-camera_info_publisher:
-  ros__parameters:
     image_width: 320
     image_height: 240
     camera_name: rpi
-    camera_matrix:
-      rows: 3
-      cols: 3
-      data: [323.716986, 0.000000, 162.429921, 0.000000, 323.390347, 117.752059, 0.000000, 0.000000, 1.000000]
+    camera_matrix: [323.716986, 0.000000, 162.429921, 0.000000, 323.390347, 117.752059, 0.000000, 0.000000, 1.000000]
     distortion_model: plumb_bob
-    distortion_coefficients:
-      rows: 1
-      cols: 5
-      data: [0.080938, -0.257429, -0.002955, 0.003629, 0.000000]
-    rectification_matrix:
-      rows: 3
-      cols: 3
-      data: [1, 0, 0, 0, 1, 0, 0, 0, 1]
-    projection_matrix:
-      rows: 3
-      cols: 4
-      data: [325.144379, 0.000000, 163.368673, 0.000000, 0.000000, 325.851654, 117.296646, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]
+    distortion_coefficients: [0.080938, -0.257429, -0.002955, 0.003629, 0.000000]
+    rectification_matrix: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+    projection_matrix: [325.144379, 0.000000, 163.368673, 0.000000, 0.000000, 325.851654, 117.296646, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]
   

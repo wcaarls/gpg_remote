@@ -40,7 +40,7 @@ import rclpy
 from rclpy.node import Node
 
 import cv2
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
 
 # http://picamera.readthedocs.io/en/release-1.9/recipes1.html#capturing-to-a-network-stream
@@ -59,6 +59,17 @@ class ImagePublisher(Node):
     
         self.declare_parameter('host', '192.168.0.201')
         self.declare_parameter('port', 8000)
+        self.declare_parameter('image_width', 320)
+        self.declare_parameter('image_height', 240)
+        self.declare_parameter('camera_name', 'rpi')
+        self.declare_parameter('camera_matrix', [323.716986, 0.000000, 162.429921, 0.000000, 323.390347, 117.752059, 0.000000, 0.000000, 1.000000]) # 3x3
+        self.declare_parameter('rectification_matrix', [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]) # 3x3
+        self.declare_parameter('projection_matrix', [325.144379, 0.000000, 163.368673, 0.000000, 0.000000, 325.851654, 117.296646, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]) # 3x4
+        self.declare_parameter('distortion_model', 'plumb_bob')
+        self.declare_parameter('distortion_coefficients', [0.080938, -0.257429, -0.002955, 0.003629, 0.000000])
+        
+        self.infopub = self.create_publisher(CameraInfo, 'camera_info', 10)
+        self.timer = self.create_timer(1.0, self.timer_callback)
         
         # Connect to Raspberry Pi
         host = self.get_parameter('host').value
@@ -71,6 +82,20 @@ class ImagePublisher(Node):
         self.connection = self.client_socket.makefile('rb')
         
         self.get_logger().info('Spinning')
+        
+    def timer_callback(self):
+        msg = CameraInfo()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'camera'
+        msg.height = self.get_parameter('image_width').value
+        msg.width = self.get_parameter('image_height').value
+        msg.distortion_model = self.get_parameter('distortion_model').value
+        msg.d = self.get_parameter('distortion_coefficients').value
+        msg.k = self.get_parameter('camera_matrix').value
+        msg.r = self.get_parameter('rectification_matrix').value
+        msg.p = self.get_parameter('projection_matrix').value
+        
+        self.infopub.publish(msg)
 
     def readimage(self):
         image_len = struct.unpack('<L', self.connection.read(struct.calcsize('<L')))[0]
