@@ -14,6 +14,7 @@
 
 from launch import LaunchDescription
 from launch.actions import RegisterEventHandler
+from launch.actions import ExecuteProcess
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import PathJoinSubstitution
 
@@ -39,11 +40,20 @@ def generate_launch_description():
     rviz_config_file = PathJoinSubstitution(
         [FindPackageShare("gpg_remote"), "gpg_remote.rviz"]
     )
+    
+    robot_publisher = ExecuteProcess(cmd=['ros2', 'topic', 'pub', '-1', '--keep-alive', '86400', '--qos-durability', 'transient_local', '/robot_description', 'std_msgs/String', 'data: \'' + robot_description_content + '\''])
+#    robot_publisher = Node(
+#            package='robot_state_publisher',
+#            executable='robot_state_publisher',
+#            name='robot_state_publisher',
+#            output='both',
+#            parameters=[robot_description],
+#            )
 
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[robot_description, robot_controllers],
+        parameters=[robot_controllers],
         output="both",
     )
     
@@ -106,6 +116,7 @@ def generate_launch_description():
     )
 
     nodes = [
+        robot_publisher,
         control_node,
         image_publisher_node,
         joint_state_broadcaster_spawner,
