@@ -173,6 +173,7 @@ def main():
                     break
 
             twist = geometry_msgs.msg.TwistStamped()
+            twist.header.stamp = node.get_clock().now().to_msg()
             twist.twist.linear.x = x * speed
             twist.twist.linear.y = y * speed
             twist.twist.linear.z = z * speed
